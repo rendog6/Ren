@@ -1,0 +1,248 @@
+<title>Parts Counter</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: parts-counter ticket. Vehicle + part form on the left, quote ticket on the right; stacks on phones. */
+:root {
+  --bg: #eef1f4; --panel: #ffffff; --ink: #18212b; --muted: #5b6876; --line: #d3dae2;
+  --accent: #b85f00; --accent-ink: #ffffff; --chip: #f6efe6; --good: #1f7a4d; --warn: #9a5b00;
+  --display: "Barlow Condensed", "Arial Narrow", sans-serif;
+  --body: "IBM Plex Sans", system-ui, sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #12171d; --panel: #1b222a; --ink: #e6ebf0; --muted: #98a5b3; --line: #2d3742;
+  --accent: #f0a04b; --accent-ink: #1a1206; --chip: #2a2219; --good: #5cc796; --warn: #f0b860; color-scheme: dark } }
+:root[data-theme="dark"] {
+  --bg: #12171d; --panel: #1b222a; --ink: #e6ebf0; --muted: #98a5b3; --line: #2d3742;
+  --accent: #f0a04b; --accent-ink: #1a1206; --chip: #2a2219; --good: #5cc796; --warn: #f0b860; color-scheme: dark }
+
+* { box-sizing: border-box }
+body { background: var(--bg); color: var(--ink); font: 15px/1.5 var(--body);
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 24px 48px }
+.wrap { max-width: 1080px; margin: 0 auto; display: grid; gap: 20px }
+header { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 16px }
+h1 { font: 700 2.4rem/1 var(--display); letter-spacing: .01em; margin: 0; text-transform: uppercase }
+header p { margin: 0; color: var(--muted); max-width: 60ch }
+.grid { display: grid; grid-template-columns: minmax(0, 340px) minmax(0, 1fr); gap: 20px; align-items: start }
+@media (max-width: 780px) { .grid { grid-template-columns: minmax(0, 1fr) } }
+.panel { background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 18px; min-width: 0 }
+h2 { font: 600 1.1rem/1.2 var(--display); text-transform: uppercase; letter-spacing: .08em; color: var(--muted); margin: 0 0 12px }
+form { display: grid; gap: 12px }
+.row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px }
+label { display: grid; gap: 4px; font-size: .78rem; font-weight: 600; text-transform: uppercase; letter-spacing: .06em; color: var(--muted) }
+input, select { font: 400 15px var(--body); color: var(--ink); background: var(--bg); border: 1px solid var(--line); border-radius: 4px; padding: 9px 10px; width: 100%; min-width: 0 }
+input:focus, select:focus, button:focus-visible, a:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px }
+.hint { font-size: .78rem; color: var(--muted); text-transform: none; letter-spacing: 0; font-weight: 400 }
+.chips { display: flex; flex-wrap: wrap; gap: 6px }
+.chips button { font: 500 .8rem var(--body); background: var(--chip); color: var(--ink); border: 1px solid var(--line); border-radius: 999px; padding: 4px 10px; cursor: pointer }
+.chips button:hover { border-color: var(--accent) }
+.go { font: 700 1.15rem var(--display); text-transform: uppercase; letter-spacing: .08em; background: var(--accent); color: var(--accent-ink); border: 0; border-radius: 4px; padding: 12px; cursor: pointer }
+.go:disabled { opacity: .6; cursor: progress }
+.status { font-size: .85rem; color: var(--muted); min-height: 1.3em; margin: 0 }
+
+.ticket-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 6px 12px; border-bottom: 2px dashed var(--line); padding-bottom: 12px; margin-bottom: 4px }
+.veh { font: 700 1.7rem/1.1 var(--display); text-transform: uppercase; margin: 0 }
+.tag { font: 500 .72rem var(--mono); text-transform: uppercase; letter-spacing: .06em; padding: 2px 8px; border-radius: 3px; background: var(--chip); color: var(--warn); border: 1px solid var(--line) }
+.note { color: var(--muted); font-size: .88rem; margin: 8px 0 0 }
+.part { padding: 14px 0; border-bottom: 1px solid var(--line); display: grid; gap: 10px }
+.part h3 { margin: 0; font: 600 1.05rem var(--body) }
+.part h3 small { font: 400 .8rem var(--mono); color: var(--muted); margin-left: 6px }
+.tiers { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums }
+.tiers td, .tiers th { text-align: left; padding: 6px 8px 6px 0; border-top: 1px solid var(--line); vertical-align: top; font-size: .9rem }
+.tiers th { font-size: .72rem; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); border-top: 0; font-weight: 600 }
+.price { font-family: var(--mono); white-space: nowrap }
+.brands { color: var(--muted); font-size: .82rem }
+.labor { font-size: .88rem; color: var(--muted) }
+.labor b { color: var(--ink); font-family: var(--mono); font-weight: 500 }
+.shop { display: flex; flex-wrap: wrap; gap: 6px }
+.shop a { font: 500 .8rem var(--body); color: var(--ink); text-decoration: none; border: 1px solid var(--line); border-radius: 4px; padding: 4px 9px; background: var(--bg) }
+.shop a:hover { border-color: var(--accent); color: var(--accent) }
+.totals { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin-top: 14px }
+.tot { border: 1px solid var(--line); border-radius: 4px; padding: 10px 12px; background: var(--bg) }
+.tot span { display: block; font-size: .72rem; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); font-weight: 600 }
+.tot b { font: 500 1.15rem var(--mono); font-variant-numeric: tabular-nums }
+.tot.main { border-color: var(--accent) }
+.tot.main b { color: var(--accent) }
+.ask { margin: 12px 0 0; padding-left: 18px; font-size: .88rem; color: var(--muted) }
+.fine { font-size: .78rem; color: var(--muted); margin: 14px 0 0 }
+@media (prefers-reduced-motion: no-preference) { .part { animation: in .25s ease-out both } @keyframes in { from { transform: translateY(4px) } to { transform: none } } }
+</style>
+
+<div class="wrap">
+  <header>
+    <h1>Parts Counter</h1>
+    <p>Enter the year, make and model, list the parts you need, and get a price quote with brands, labor time and links to check live prices.</p>
+  </header>
+
+  <div class="grid">
+    <section class="panel" aria-labelledby="vh">
+      <h2 id="vh">Vehicle &amp; parts</h2>
+      <form id="f">
+        <div class="row">
+          <label for="year">Year<select id="year"></select></label>
+          <label for="make">Make<input id="make" list="makes" autocomplete="off" value="Honda"></label>
+        </div>
+        <label for="model">Model<input id="model" list="models" autocomplete="off" value="Civic"></label>
+        <label for="trim">Trim / engine <span class="hint">optional, e.g. "LX 1.8L" or "4WD 5.3L V8"</span><input id="trim" value="LX 1.8L"></label>
+        <label for="parts">Parts needed <span class="hint">separate with commas</span><input id="parts" value="front brake pads, front rotors"></label>
+        <div class="chips" aria-label="Common parts">
+          <button type="button">Alternator</button><button type="button">Starter</button><button type="button">Battery</button>
+          <button type="button">Spark plugs</button><button type="button">Serpentine belt</button><button type="button">Water pump</button>
+          <button type="button">Rear brake pads</button><button type="button">Headlight bulb</button><button type="button">Cabin air filter</button>
+        </div>
+        <div class="row">
+          <label for="zip">ZIP <span class="hint">optional</span><input id="zip" inputmode="numeric" maxlength="5" placeholder="e.g. 75201"></label>
+          <label for="rate">Shop rate $/hr<input id="rate" type="number" min="0" step="5" value="125"></label>
+        </div>
+        <button class="go" id="go" type="submit">Get quote</button>
+        <p class="status" id="status" role="status"></p>
+      </form>
+    </section>
+
+    <section class="panel" id="ticket" aria-live="polite"></section>
+  </div>
+</div>
+
+<script>
+const MAKES = {
+  Acura:["ILX","MDX","RDX","TLX","TSX"], Audi:["A3","A4","A6","Q3","Q5","Q7"], BMW:["3 Series","5 Series","X1","X3","X5"],
+  Buick:["Enclave","Encore","LaCrosse"], Cadillac:["CTS","Escalade","SRX","XT5"], Chevrolet:["Camaro","Colorado","Cruze","Equinox","Impala","Malibu","Silverado 1500","Suburban","Tahoe","Traverse"],
+  Chrysler:["200","300","Pacifica","Town & Country"], Dodge:["Challenger","Charger","Durango","Grand Caravan","Journey"], Ford:["Bronco","Edge","Escape","Explorer","F-150","F-250 Super Duty","Focus","Fusion","Mustang","Ranger"],
+  GMC:["Acadia","Canyon","Sierra 1500","Terrain","Yukon"], Honda:["Accord","Civic","CR-V","Fit","HR-V","Odyssey","Pilot","Ridgeline"], Hyundai:["Elantra","Kona","Santa Fe","Sonata","Tucson"],
+  Infiniti:["G37","Q50","QX60"], Jeep:["Cherokee","Compass","Grand Cherokee","Wrangler"], Kia:["Forte","Optima","Sorento","Soul","Sportage","Telluride"],
+  Lexus:["ES 350","GX 460","IS 250","RX 350"], Mazda:["CX-5","CX-9","Mazda3","Mazda6","MX-5 Miata"], "Mercedes-Benz":["C-Class","E-Class","GLC","ML-Class"],
+  Mitsubishi:["Lancer","Outlander"], Nissan:["Altima","Frontier","Maxima","Murano","Pathfinder","Rogue","Sentra","Titan"], Ram:["1500","2500"],
+  Subaru:["Crosstrek","Forester","Impreza","Legacy","Outback"], Tesla:["Model 3","Model Y"], Toyota:["4Runner","Camry","Corolla","Highlander","Prius","RAV4","Sienna","Tacoma","Tundra"],
+  Volkswagen:["Golf","Jetta","Passat","Tiguan"], Volvo:["S60","XC60","XC90"]
+};
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const money = n => "$" + Math.round(Number(n) || 0).toLocaleString("en-US");
+
+// Year list, newest first
+const thisYear = new Date().getFullYear() + 1;
+for (let y = thisYear; y >= 1975; y--) $("year").add(new Option(y, y));
+$("year").value = "2015";
+
+const makesDl = document.createElement("datalist"); makesDl.id = "makes";
+Object.keys(MAKES).forEach(m => makesDl.append(new Option(m)));
+const modelsDl = document.createElement("datalist"); modelsDl.id = "models";
+document.body.append(makesDl, modelsDl);
+function fillModels() {
+  const key = Object.keys(MAKES).find(k => k.toLowerCase() === $("make").value.trim().toLowerCase());
+  modelsDl.replaceChildren(...(key ? MAKES[key] : []).map(m => new Option(m)));
+}
+$("make").addEventListener("input", fillModels); fillModels();
+
+document.querySelectorAll(".chips button").forEach(b => b.onclick = () => {
+  const cur = $("parts").value.split(",").map(s => s.trim()).filter(Boolean);
+  const p = b.textContent.toLowerCase();
+  if (!cur.map(s => s.toLowerCase()).includes(p)) cur.push(p);
+  $("parts").value = cur.join(", ");
+});
+
+function shopLinks(v, part) {
+  const q = encodeURIComponent(`${v.year} ${v.make} ${v.model} ${part}`);
+  const ra = `https://www.rockauto.com/en/catalog/${encodeURIComponent(v.make.toLowerCase())},${v.year},${encodeURIComponent(v.model.toLowerCase()).replace(/%20/g, "+")}`;
+  return [
+    ["RockAuto", ra],
+    ["AutoZone", `https://www.autozone.com/searchresult?searchText=${q}`],
+    ["O'Reilly", `https://www.oreillyauto.com/search?q=${q}`],
+    ["Advance", `https://shop.advanceautoparts.com/web/SearchResults?searchTerm=${q}`],
+    ["NAPA", `https://www.napaonline.com/en/search?text=${q}`],
+    ["eBay", `https://www.ebay.com/sch/6000/i.html?_nkw=${q}`],
+    ["Amazon", `https://www.amazon.com/s?k=${q}`]
+  ].map(([n, u]) => `<a href="${esc(u)}" target="_blank" rel="noopener">${n} ↗</a>`).join("");
+}
+
+function render(v, q, example) {
+  const rate = Number($("rate").value) || 0;
+  let lowParts = 0, midParts = 0, laborLo = 0, laborHi = 0;
+  const parts = (q.parts || []).map(p => {
+    const tiers = Array.isArray(p.tiers) ? p.tiers : [];
+    const lows = tiers.map(t => Number(t.low) || 0).filter(n => n > 0);
+    const mids = tiers.map(t => ((Number(t.low) || 0) + (Number(t.high) || 0)) / 2).filter(n => n > 0);
+    lowParts += lows.length ? Math.min(...lows) : 0;
+    midParts += mids.length ? mids[Math.min(1, mids.length - 1)] : 0;
+    laborLo += Number(p.labor_hours_low) || 0; laborHi += Number(p.labor_hours_high) || 0;
+    return `<div class="part">
+      <h3>${esc(p.name)}${p.qty ? `<small>qty ${esc(p.qty)}</small>` : ""}</h3>
+      <div style="overflow-x:auto"><table class="tiers">
+        <tr><th>Grade</th><th>Price each</th><th>Brands to look for</th></tr>
+        ${tiers.map(t => `<tr><td>${esc(t.tier)}</td><td class="price">${money(t.low)}–${money(t.high)}</td><td class="brands">${esc((t.brands || []).join(", "))}</td></tr>`).join("")}
+      </table></div>
+      <div class="labor">Labor: <b>${esc(p.labor_hours_low)}–${esc(p.labor_hours_high)} hr</b>${p.notes ? ` · ${esc(p.notes)}` : ""}</div>
+      <div class="shop">${shopLinks(v, p.name)}</div>
+    </div>`;
+  }).join("");
+  const ask = (q.fitment_questions || []).filter(Boolean);
+  $("ticket").innerHTML = `
+    <div class="ticket-head">
+      <p class="veh">${esc(v.year)} ${esc(v.make)} ${esc(v.model)}${v.trim ? " " + esc(v.trim) : ""}</p>
+      <span class="tag">${example ? "Example quote" : "Estimate"}</span>
+    </div>
+    ${q.vehicle_note ? `<p class="note">${esc(q.vehicle_note)}</p>` : ""}
+    ${parts}
+    <div class="totals">
+      <div class="tot"><span>Parts, cheapest</span><b>${money(lowParts)}</b></div>
+      <div class="tot"><span>Parts, mid-grade</span><b>${money(midParts)}</b></div>
+      <div class="tot"><span>Labor @ ${money(rate)}/hr</span><b>${money(laborLo * rate)}–${money(laborHi * rate)}</b></div>
+      <div class="tot main"><span>Shop total (mid-grade)</span><b>${money(midParts + laborLo * rate)}–${money(midParts + laborHi * rate)}</b></div>
+    </div>
+    ${ask.length ? `<ul class="ask">${ask.map(a => `<li>${esc(a)}</li>`).join("")}</ul>` : ""}
+    <p class="fine">Prices are typical US retail ranges, not live store prices. Use the store links to confirm fitment and the exact price before buying.</p>`;
+}
+
+const EXAMPLE = {
+  vehicle_note: "9th-gen Civic sedan. Front brakes are a common DIY job.",
+  parts: [
+    { name: "Front brake pads", qty: "1 set", labor_hours_low: 0.8, labor_hours_high: 1.2, notes: "Usually done together with rotors.",
+      tiers: [{ tier: "Economy aftermarket", low: 25, high: 40, brands: ["Duralast", "Wagner"] },
+              { tier: "Premium aftermarket", low: 45, high: 70, brands: ["Akebono", "Bosch QuietCast"] },
+              { tier: "OEM (Honda)", low: 60, high: 90, brands: ["Honda Genuine"] }] },
+    { name: "Front rotors", qty: "2", labor_hours_low: 0.3, labor_hours_high: 0.5, notes: "Extra time if pads are replaced in the same job.",
+      tiers: [{ tier: "Economy aftermarket", low: 30, high: 45, brands: ["Duralast", "Brakebest"] },
+              { tier: "Premium aftermarket", low: 50, high: 80, brands: ["Centric", "Bosch"] },
+              { tier: "OEM (Honda)", low: 85, high: 130, brands: ["Honda Genuine"] }] }
+  ],
+  fitment_questions: ["Example only. Press Get quote to price your own vehicle."]
+};
+render({ year: 2015, make: "Honda", model: "Civic", trim: "LX 1.8L" }, EXAMPLE, true);
+
+const ERR = {
+  not_granted: "Quotes need permission to use Claude. Use the store links to compare prices instead.",
+  sampling_disabled: "Claude isn't available on this account, so quotes can't be generated.",
+  rate_limited: "Too many requests right now. Wait a minute and try again.",
+  session_expired: "Sign in to Claude again, then try again.",
+  invalid_json: "The quote came back in an unexpected format. Try again.",
+  refused: "That request couldn't be quoted. Check the part names and try again."
+};
+
+let sample = null;
+(window.claude?.use?.("sample") ?? Promise.resolve(null)).then(s => { sample = s; if (!s) $("status").textContent = "Quotes aren't available here. The store links still work."; });
+
+$("f").addEventListener("submit", async e => {
+  e.preventDefault();
+  const v = { year: $("year").value, make: $("make").value.trim(), model: $("model").value.trim(), trim: $("trim").value.trim() };
+  const parts = $("parts").value.split(",").map(s => s.trim()).filter(Boolean);
+  if (!v.make || !v.model || !parts.length) { $("status").textContent = "Enter a make, a model and at least one part."; return; }
+  if (!sample) { $("status").textContent = "Quotes aren't available here. The store links below still work.";
+    render(v, { parts: parts.map(n => ({ name: n, tiers: [] })) }, false); return; }
+  $("go").disabled = true; $("status").textContent = "Looking up parts…";
+  const prompt = `You are an experienced auto parts counter person in the US. Give a price quote for replacement parts.
+Vehicle: ${v.year} ${v.make} ${v.model}${v.trim ? " " + v.trim : ""}${$("zip").value ? ` (customer ZIP ${$("zip").value})` : ""}.
+Parts requested: ${parts.join("; ")}.
+For each part give typical current US retail prices (per unit, in USD) at stores like AutoZone, O'Reilly, Advance, RockAuto and the dealer, split into grades: "Economy aftermarket", "Premium aftermarket", and "OEM (<brand>)". Name real brands commonly sold for this vehicle. Give book labor hours for a professional shop. If a part doesn't exist on this vehicle or the vehicle doesn't exist, say so in vehicle_note.
+Reply with only JSON of this shape:
+{"vehicle_note": string (one sentence about the vehicle/generation), "parts":[{"name": string, "qty": string, "tiers":[{"tier": string, "low": number, "high": number, "brands": [string]}], "labor_hours_low": number, "labor_hours_high": number, "notes": string (one short tip)}], "fitment_questions": [string] (things to confirm for correct fitment, max 3)}`;
+  try {
+    const q = await sample.json(prompt, { modelTier: "default" });
+    if (!q || !Array.isArray(q.parts)) throw { code: "invalid_json" };
+    render(v, q, false); $("status").textContent = "Quote ready.";
+  } catch (err) {
+    $("status").textContent = ERR[err?.code] || "Something went wrong getting the quote. Try again.";
+  } finally { $("go").disabled = false; }
+});
+</script>
