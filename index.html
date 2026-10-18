@@ -1,3 +1,4 @@
+<meta charset="utf-8">
 <title>Parts Counter</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -169,15 +170,16 @@ function render(v, q, example) {
     laborLo += Number(p.labor_hours_low) || 0; laborHi += Number(p.labor_hours_high) || 0;
     return `<div class="part">
       <h3>${esc(p.name)}${p.qty ? `<small>qty ${esc(p.qty)}</small>` : ""}</h3>
-      <div style="overflow-x:auto"><table class="tiers">
+      ${tiers.length ? `<div style="overflow-x:auto"><table class="tiers">
         <tr><th>Grade</th><th>Price each</th><th>Brands to look for</th></tr>
         ${tiers.map(t => `<tr><td>${esc(t.tier)}</td><td class="price">${money(t.low)}–${money(t.high)}</td><td class="brands">${esc((t.brands || []).join(", "))}</td></tr>`).join("")}
       </table></div>
-      <div class="labor">Labor: <b>${esc(p.labor_hours_low)}–${esc(p.labor_hours_high)} hr</b>${p.notes ? ` · ${esc(p.notes)}` : ""}</div>
+      <div class="labor">Labor: <b>${esc(p.labor_hours_low)}–${esc(p.labor_hours_high)} hr</b>${p.notes ? ` · ${esc(p.notes)}` : ""}</div>` : ""}
       <div class="shop">${shopLinks(v, p.name)}</div>
     </div>`;
   }).join("");
   const ask = (q.fitment_questions || []).filter(Boolean);
+  const hasQuote = (q.parts || []).some(p => (p.tiers || []).length);
   $("ticket").innerHTML = `
     <div class="ticket-head">
       <p class="veh">${esc(v.year)} ${esc(v.make)} ${esc(v.model)}${v.trim ? " " + esc(v.trim) : ""}</p>
@@ -185,12 +187,12 @@ function render(v, q, example) {
     </div>
     ${q.vehicle_note ? `<p class="note">${esc(q.vehicle_note)}</p>` : ""}
     ${parts}
-    <div class="totals">
+    ${hasQuote ? `<div class="totals">
       <div class="tot"><span>Parts, cheapest</span><b>${money(lowParts)}</b></div>
       <div class="tot"><span>Parts, mid-grade</span><b>${money(midParts)}</b></div>
       <div class="tot"><span>Labor @ ${money(rate)}/hr</span><b>${money(laborLo * rate)}–${money(laborHi * rate)}</b></div>
       <div class="tot main"><span>Shop total (mid-grade)</span><b>${money(midParts + laborLo * rate)}–${money(midParts + laborHi * rate)}</b></div>
-    </div>
+    </div>` : ""}
     ${ask.length ? `<ul class="ask">${ask.map(a => `<li>${esc(a)}</li>`).join("")}</ul>` : ""}
     <p class="fine">Prices are typical US retail ranges, not live store prices. Use the store links to confirm fitment and the exact price before buying.</p>`;
 }
